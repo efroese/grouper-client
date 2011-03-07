@@ -22,7 +22,6 @@ public class GrouperClientXmppFileHandler implements GrouperClientXmppHandler {
   /**
    * @see edu.internet2.middleware.grouperClientExt.xmpp.GrouperClientXmppHandler#handleAll(GrouperClientXmppJob, String, String, List)
    */
-  @Override
   public void handleAll(GrouperClientXmppJob grouperClientXmppJob, String groupName,
       String groupExtension,
       List<GrouperClientXmppSubject> newSubjectList) {
@@ -67,7 +66,6 @@ public class GrouperClientXmppFileHandler implements GrouperClientXmppHandler {
   /**
    * @see edu.internet2.middleware.grouperClientExt.xmpp.GrouperClientXmppHandler#handleIncremental(GrouperClientXmppJob, String, String, List, List, GrouperClientXmppSubject, String)
    */
-  @Override
   public void handleIncremental(GrouperClientXmppJob grouperClientXmppJob, String groupName,
       String groupExtension, 
       List<GrouperClientXmppSubject> newSubjectList, List<GrouperClientXmppSubject> previousSubjectList,
