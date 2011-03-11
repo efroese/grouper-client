@@ -66,13 +66,6 @@
             <scope>test</scope>
             <optional>true</optional>
         </dependency>
-        <dependency>
-        	<groupId>com.google.collections</groupId>
-        	<artifactId>google-collections</artifactId>
-        	<version>1.0</version>
-        	<type>jar</type>
-        	<scope>compile</scope>
-        </dependency>
     </dependencies>
 
     <build>

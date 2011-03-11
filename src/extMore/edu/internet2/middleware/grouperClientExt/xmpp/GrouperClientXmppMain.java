@@ -32,7 +32,6 @@ import org.quartz.impl.StdSchedulerFactory;
 
 import com.google.common.collect.ImmutableSet;
 
-import edu.emory.mathcs.backport.java.util.Collections;
 import edu.internet2.middleware.grouperClient.api.GcGetMembers;
 import edu.internet2.middleware.grouperClient.util.GrouperClientUtils;
 import edu.internet2.middleware.grouperClient.ws.beans.WsGetMembersResult;
@@ -58,7 +57,7 @@ public class GrouperClientXmppMain {
    */
   private static Log log = GrouperClientUtils.retrieveLog(GrouperClientXmppMain.class);
   
-  private static final Set<String> SUPPORTED_EVENT_TYPES = ImmutableSet.of(
+  private static final Set<String> SUPPORTED_EVENT_TYPES = GrouperClientUtils.toSet(
 	"MEMBERSHIP_ADD", 
 	"MEMBERSHIP_DELETE", 
 	"GROUP_ADD", 
