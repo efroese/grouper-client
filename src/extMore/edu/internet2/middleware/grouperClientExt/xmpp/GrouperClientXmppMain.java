@@ -7,6 +7,7 @@ package edu.internet2.middleware.grouperClientExt.xmpp;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -29,8 +30,6 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.SchedulerFactory;
 import org.quartz.impl.StdSchedulerFactory;
-
-import com.google.common.collect.ImmutableSet;
 
 import edu.internet2.middleware.grouperClient.api.GcGetMembers;
 import edu.internet2.middleware.grouperClient.util.GrouperClientUtils;
@@ -57,12 +56,13 @@ public class GrouperClientXmppMain {
    */
   private static Log log = GrouperClientUtils.retrieveLog(GrouperClientXmppMain.class);
   
-  private static final Set<String> SUPPORTED_EVENT_TYPES = GrouperClientUtils.toSet(
-	"MEMBERSHIP_ADD", 
-	"MEMBERSHIP_DELETE", 
-	"GROUP_ADD", 
-	"GROUP_DELETE",
-	"GROUP_UPDATE"
+  private static final Set<String> SUPPORTED_EVENT_TYPES = Collections.unmodifiableSet(
+	GrouperClientUtils.toSet(
+			"MEMBERSHIP_ADD", 
+			"MEMBERSHIP_DELETE", 
+			"GROUP_ADD", 
+			"GROUP_DELETE",
+			"GROUP_UPDATE")
   );
 
   /**
