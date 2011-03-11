@@ -6,6 +6,7 @@ package edu.internet2.middleware.grouperClientExt.xmpp;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -29,6 +30,9 @@ import org.quartz.SchedulerException;
 import org.quartz.SchedulerFactory;
 import org.quartz.impl.StdSchedulerFactory;
 
+import com.google.common.collect.ImmutableSet;
+
+import edu.emory.mathcs.backport.java.util.Collections;
 import edu.internet2.middleware.grouperClient.api.GcGetMembers;
 import edu.internet2.middleware.grouperClient.util.GrouperClientUtils;
 import edu.internet2.middleware.grouperClient.ws.beans.WsGetMembersResult;
@@ -53,6 +57,14 @@ public class GrouperClientXmppMain {
    * logger
    */
   private static Log log = GrouperClientUtils.retrieveLog(GrouperClientXmppMain.class);
+  
+  private static final Set<String> SUPPORTED_EVENT_TYPES = ImmutableSet.of(
+	"MEMBERSHIP_ADD", 
+	"MEMBERSHIP_DELETE", 
+	"GROUP_ADD", 
+	"GROUP_DELETE",
+	"GROUP_UPDATE"
+  );
 
   /**
    * see if the esb event matches an EL filter.  Note the available objects are
@@ -192,7 +204,7 @@ public class GrouperClientXmppMain {
   private static void xmppConnect() {
     XMPPConnection theXmppConnection = xmppConnection();
     theXmppConnection.addPacketListener(new PacketListener() {
-
+      @Override
       public void processPacket(Packet packet) {
         Message message = null;
         try {
@@ -280,8 +292,8 @@ public class GrouperClientXmppMain {
         }
         
       }
-    }, 
-    new PacketFilter() {
+    }, new PacketFilter() {
+      @Override
       public boolean accept(Packet packet) {
         if (packet instanceof Message) {
           Message message = (Message)packet;
@@ -363,7 +375,6 @@ public class GrouperClientXmppMain {
     GcGetMembers gcGetMembers = new GcGetMembers();
     
     List<String> subjectAttributeNames = grouperClientXmppJob.getSubjectAttributeNames();
-    
 
     if (GrouperClientUtils.length(subjectAttributeNames) > 0) {
       for (String subjectAttributeName : subjectAttributeNames) {
@@ -566,9 +577,10 @@ public class GrouperClientXmppMain {
     return schedulerFactory;
   }
 
-
   /**
-   * 
+   * Mutate the membership list depending on the action.
+   * Cache the current membership in a field of this class.
+   * Pass the previous and current membership list off to the handler class for the {@link GrouperClientXmppJob}
    * @param grouperClientXmppJob 
    * @param groupName
    * @param grouperClientXmppSubject 
@@ -577,22 +589,26 @@ public class GrouperClientXmppMain {
   @SuppressWarnings("unchecked")
   private static void incrementalRefreshGroup(GrouperClientXmppJob grouperClientXmppJob, 
       String groupName, GrouperClientXmppSubject grouperClientXmppSubject, String eventType) {
-    
-    List<GrouperClientXmppSubject> oldList = groupMemberships.get(groupName);
+	  
+	if (! SUPPORTED_EVENT_TYPES.contains(eventType)){
+	  throw new RuntimeException("Not expecting action: '" + eventType + "'");
+	}
+	
+	List<GrouperClientXmppSubject> oldList = java.util.Collections.EMPTY_LIST;
 
-    if (oldList == null) {
-      //we need to get all
-      //throw new NullPointerException("Why is old list null????");
-      fullRefreshGroup(grouperClientXmppJob, groupName);
-      
-      oldList = groupMemberships.get(groupName);
-    }
+	if (eventType.equals("MEMBERSHIP_ADD") || eventType.equals("MEMBERSHIP_DELETE")) {
+	  oldList = groupMemberships.get(groupName);	
+	  if (oldList == null) {
+		// Do a full refresh and then ask for the group membership again
+		fullRefreshGroup(grouperClientXmppJob, groupName);
+		oldList = groupMemberships.get(groupName);
+	  }
+	  if (oldList == null) {
+		throw new NullPointerException("Why is old list null????");
+	  }
+	}
 
-    if (oldList == null) {
-      throw new NullPointerException("Why is old list null????");
-    }
-
-    List<GrouperClientXmppSubject> newList = new ArrayList<GrouperClientXmppSubject>(oldList);
+	List<GrouperClientXmppSubject> newList = new ArrayList<GrouperClientXmppSubject>(oldList);
     
     if (GrouperClientUtils.equals(eventType, "MEMBERSHIP_ADD")) {
       if (!newList.contains(grouperClientXmppSubject)) {
@@ -603,38 +619,26 @@ public class GrouperClientXmppMain {
         }
       }
       
-    } else if (GrouperClientUtils.equals(eventType, "MEMBERSHIP_DELETE")) {
-      if (newList.contains(grouperClientXmppSubject)) {
-        int i=0;
-        while (true) {
-          if (!newList.remove(grouperClientXmppSubject)) {
-            break;
-          }
-          if (i++ > 100) {
-            throw new RuntimeException("Time to live exceeded for group " + groupName + ", subject " + grouperClientXmppSubject.getSubjectId());
-          }
-        }
-      } else {
-        if (log.isDebugEnabled()) {
-          log.debug("Group " + groupName + " already doesnt contain subject: " + grouperClientXmppSubject.getSubjectId());
-        }
-        
-      }
-    } else {
-      throw new RuntimeException("Not expecting action: '" + eventType + "'");
+    } 
+    else if (GrouperClientUtils.equals(eventType, "MEMBERSHIP_DELETE")) {
+      Collection<GrouperClientXmppSubject> toRemove = new ArrayList<GrouperClientXmppSubject>();
+      toRemove.add(grouperClientXmppSubject);
+      newList.removeAll(toRemove);
     }
-  
+    
+    groupMemberships.put(groupName, newList);
+ 
     if (log.isDebugEnabled()) {
       log.debug("Refreshing incremental for " + groupName + " was " + GrouperClientUtils.length(oldList) 
           + " and is now " + GrouperClientUtils.length(newList) + " subjects");
     }
+
+    // Instantiate the handler for this job and call the handleIncremental method
     Class<GrouperClientXmppHandler> handlerClass = GrouperClientUtils.forName(grouperClientXmppJob.getHandlerClass());
     GrouperClientXmppHandler grouperClientXmppHandler = GrouperClientUtils.newInstance(handlerClass);
-    groupMemberships.put(groupName, newList);
     grouperClientXmppHandler.handleIncremental(grouperClientXmppJob, 
         groupName, GrouperClientUtils.extensionFromName(groupName), 
          newList, oldList, grouperClientXmppSubject, eventType);
-    
   }
 
 }
