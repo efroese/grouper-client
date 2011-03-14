@@ -314,36 +314,6 @@ public class GrouperClientXmppMain {
       }
     });
   }
-  
-//  /**
-//   * 
-//   * @return xstream
-//   */
-//  private static XStream xstream() {
-//    if (xStream == null) {
-//      xStream = new XStream(new XppDriver());
-//      
-//      //do javabean properties, not fields
-//      xStream.registerConverter(new JavaBeanConverter(xStream.getMapper()) {
-//  
-//        /**
-//         * @see com.thoughtworks.xstream.converters.javabean.JavaBeanConverter#canConvert(java.lang.Class)
-//         */
-//        @SuppressWarnings("unchecked")
-//        @Override
-//        public boolean canConvert(Class type) {
-//          //see if one of our beans
-//          return type.getName().startsWith("edu.internet2");
-//        }
-//        
-//      }); 
-//      
-//      xStream.alias("XmppMembershipChange", XmppMembershipChange.class);
-//      xStream.alias("XmppSubject", XmppSubject.class);
-//  
-//    }
-//    return xStream;
-//  }
 
   /** allowed from jabber ids */
   private static Set<String> allowFromJabberIds = new HashSet<String>();
