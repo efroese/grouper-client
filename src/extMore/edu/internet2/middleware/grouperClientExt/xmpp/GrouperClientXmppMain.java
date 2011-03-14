@@ -266,15 +266,19 @@ public class GrouperClientXmppMain {
               
               } else if (XmppJobEventAction.incremental == grouperClientXmppJob.getEventAction()) {
                 
-                if (log.isDebugEnabled()) {
-                  log.debug("performing an incremental reload on group: " + esbEvent.getGroupName()
-                      + " for job: " + grouperClientXmppJob.getJobName() + ", subject: " + esbEvent.getSubjectId());
-                }
-                
                 GrouperClientXmppSubject grouperClientXmppSubject = new GrouperClientXmppSubject(esbEvent);
                 
-                incrementalRefreshGroup(grouperClientXmppJob, esbEvent.getGroupName(), 
-                    grouperClientXmppSubject, esbEvent.getEventType());
+                String groupName = esbEvent.getGroupName();
+                if (GrouperClientUtils.isBlank(groupName)){
+                	groupName = esbEvent.getName();
+                }
+                
+                if (log.isDebugEnabled()) {
+                    log.debug("performing an incremental reload on group: " + groupName
+                        + " for job: " + grouperClientXmppJob.getJobName() + ", subject: " + esbEvent.getSubjectId());
+                  }
+                
+                incrementalRefreshGroup(grouperClientXmppJob, groupName, grouperClientXmppSubject, esbEvent.getEventType());
                 
               } else {
                 throw new RuntimeException("Not expecting event action: " + grouperClientXmppJob.getEventAction());
